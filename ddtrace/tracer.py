@@ -11,6 +11,7 @@ from .span import Span
 from .constants import FILTERS_KEY, SAMPLE_RATE_METRIC_KEY
 from . import compat
 from .ext.priority import AUTO_REJECT, AUTO_KEEP
+from .utils.formats import asbool
 
 
 log = logging.getLogger(__name__)
@@ -37,6 +38,9 @@ class Tracer(object):
         """
         self.sampler = None
         self.priority_sampler = None
+
+        # Master switch for turning on and off trace search by default
+        self.trace_search_enabled = asbool(environ.get('DD_TRACE_SEARCH_ENABLED', True))
 
         # Apply the default configuration
         self.configure(
@@ -105,7 +109,7 @@ class Tracer(object):
 
         filters = None
         if settings is not None:
-                filters = settings.get(FILTERS_KEY)
+            filters = settings.get(FILTERS_KEY)
 
         if sampler is not None:
             self.sampler = sampler

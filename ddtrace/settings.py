@@ -1,12 +1,14 @@
 import collections
 from copy import deepcopy
 import logging
+from os import environ
 
 from .pin import Pin
 from .span import Span
 from .utils.attrdict import AttrDict
 from .utils.merge import deepmerge
 from .utils.http import normalize_header_name
+from .utils.formats import asbool
 
 
 log = logging.getLogger(__name__)
@@ -29,6 +31,8 @@ class Config(object):
         # use a dict as underlying storing mechanism
         self._config = {}
         self._http = HttpConfig()
+        # Master switch for turning on and off trace search by default
+        self.trace_search = asbool(environ.get('DD_TRACE_SEARCH', False))
 
     def __getattr__(self, name):
         if name not in self._config:
@@ -135,7 +139,8 @@ class IntegrationConfig(AttrDict):
 
         # Set default keys/values
         # DEV: Default to `None` which means do not set this key
-        self['event_sample_rate'] = None
+        self['trace_search'] = None
+        self['event_sample_rate'] = 1.0
 
     def __deepcopy__(self, memodict=None):
         new = IntegrationConfig(self.global_config, deepcopy(dict(self)))
@@ -155,6 +160,16 @@ class IntegrationConfig(AttrDict):
             if self.http.is_header_tracing_configured
             else self.global_config.header_is_traced(header_name)
         )
+
+    def is_trace_search_enabled(self, enabled_if_global=False):
+        if self.global_config.trace_search:
+            return self.trace_search is not False
+        else:
+            return self.trace_search is True
+
+    def get_event_sample_rate(self, enabled_if_global=False):
+        if self.is_trace_search_enabled(enabled_if_global=enabled_if_global):
+            return self.event_sample_rate or 1
 
     def __repr__(self):
         cls = self.__class__

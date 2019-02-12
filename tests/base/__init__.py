@@ -24,6 +24,21 @@ class BaseTestCase(unittest.TestCase):
     """
 
     @contextlib.contextmanager
+    def override_global_trace_search(self, value):
+        """
+        Temporarily override an global trace search configuration value
+        >>> with self.override_global_trace_search(True):
+            # Your test
+        """
+        original = ddtrace.config.trace_search
+
+        ddtrace.config.trace_search = value
+        try:
+            yield
+        finally:
+            ddtrace.config.trace_search = original
+
+    @contextlib.contextmanager
     def override_config(self, integration, values):
         """
         Temporarily override an integration configuration value
